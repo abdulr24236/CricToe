@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>CricToe — Daily Cricket Trivia Grid</title>
+  <meta name="description" content="CricToe is a free daily cricket trivia grid game. Fill a 3x3 grid with cricketers who match both the row and column categories. A new puzzle every day." />
+  <meta name="theme-color" content="#0b1a12" />
+
+  <!-- Open Graph / social sharing -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="CricToe — Daily Cricket Trivia Grid" />
+  <meta property="og:description" content="One 3x3 grid. Three row categories, three column categories, three minutes on the clock. How many cricketers do you know?" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8F%8F%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <!-- Decorative background layers -->
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <div class="app">
+    <!-- ============ HEADER ============ -->
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="CricToe home">
+        <span class="brand__mark" aria-hidden="true">🏏</span>
+        <span class="brand__text">
+          <strong>CRICTOE</strong>
+          <small>daily cricket grid</small>
+        </span>
+      </a>
+
+      <nav class="topbar__actions" aria-label="Game options">
+        <button type="button" class="btn btn--ghost" id="btn-help">How to play</button>
+        <button type="button" class="btn btn--ghost" id="btn-stats">Stats</button>
+        <button type="button" class="btn btn--ghost btn--practice" id="btn-practice" aria-pressed="false">Practice</button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <!-- ============ PUZZLE HEADER + HUD ============ -->
+      <section class="puzzle-head" aria-labelledby="puzzle-title">
+        <div class="puzzle-head__titles">
+          <h1 id="puzzle-title">Daily Puzzle</h1>
+          <p id="puzzle-date" class="puzzle-head__date">Loading…</p>
+        </div>
+
+        <div class="hud" role="group" aria-label="Game status">
+          <div class="hud__item hud__item--timer" id="hud-timer-item">
+            <span class="hud__value" id="hud-timer">3:00</span>
+            <span class="hud__label" id="hud-timer-label">Time left</span>
+          </div>
+          <div class="hud__item">
+            <span class="hud__value" id="hud-solved">0/9</span>
+            <span class="hud__label">Solved</span>
+          </div>
+          <div class="hud__item">
+            <span class="hud__value" id="hud-streak">0</span>
+            <span class="hud__label">Streak</span>
+          </div>
+          <div class="hud__item hud__item--wide" id="hud-reset-item">
+            <span class="hud__value hud__value--small" id="hud-countdown">--:--:--</span>
+            <span class="hud__label" id="hud-countdown-label">Next puzzle in</span>
+          </div>
+        </div>
+
+        <div class="progress" aria-hidden="true">
+          <div class="progress__bar" id="progress-bar"></div>
+        </div>
+      </section>
+
+      <!-- ============ GRID ============ -->
+      <section class="board-wrap" aria-label="Puzzle grid">
+        <div class="board-scroll">
+          <div class="board" id="board" role="grid" aria-label="CricToe 3 by 3 grid">
+            <!-- Rendered by script.js -->
+          </div>
+        </div>
+
+        <p class="board-note" id="board-note">
+          Tap any square and name a cricketer who fits <em>both</em> its row and column.
+          A square showing a player's photo means <em>played with that player</em>.
+          The clock starts on your first tap.
+        </p>
+      </section>
+
+      <!-- ============ CONTROLS ============ -->
+      <section class="controls">
+        <button type="button" class="btn btn--primary" id="btn-share">Share result</button>
+        <button type="button" class="btn" id="btn-reveal">Give up &amp; reveal</button>
+        <button type="button" class="btn" id="btn-reset">Reset board</button>
+      </section>
+
+      <p class="archive-note" id="archive-note" hidden></p>
+    </main>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+      <p>
+        CricToe · a daily cricket trivia grid ·
+        <button type="button" class="linklike" id="btn-help-footer">How to play</button>
+      </p>
+      <p class="footer__tiny">
+        Data is generated from <a class="linklike" href="https://en.wikipedia.org" target="_blank" rel="noopener">Wikipedia</a> (CC BY-SA 4.0),
+        <a class="linklike" href="https://www.wikidata.org" target="_blank" rel="noopener">Wikidata</a> (CC0),
+        <a class="linklike" href="https://cricsheet.org" target="_blank" rel="noopener">Cricsheet</a> (ODC-By 1.0) and
+        <a class="linklike" href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>.
+        Stats are approximate — good enough for trivia, not for record books.
+      </p>
+    </footer>
+  </div>
+
+  <!-- ============ GUESS PANEL (autocomplete) ============ -->
+  <div class="guess-panel" id="guess-panel" hidden>
+    <div class="guess-panel__head">
+      <p class="guess-panel__cats" id="guess-cats"></p>
+      <button type="button" class="icon-btn" id="guess-close" aria-label="Close guess panel">✕</button>
+    </div>
+
+    <div class="guess-panel__note" id="guess-note"></div>
+
+    <form class="guess-form" id="guess-form" autocomplete="off">
+      <div class="guess-form__field">
+        <input
+          type="text"
+          id="guess-input"
+          class="guess-input"
+          placeholder="Type a cricketer's name…"
+          aria-label="Cricketer name"
+          aria-autocomplete="list"
+          aria-controls="guess-suggestions"
+          aria-expanded="false"
+          spellcheck="false"
+        />
+        <button type="submit" class="btn btn--primary btn--submit" id="guess-submit">Guess</button>
+      </div>
+      <ul class="suggestions" id="guess-suggestions" role="listbox" aria-label="Matching cricketers" hidden></ul>
+    </form>
+
+    <p class="guess-panel__hint" id="guess-hint"></p>
+  </div>
+
+  <!-- ============ MODALS ============ -->
+  <div class="overlay" id="overlay" hidden></div>
+
+  <!-- How to play -->
+  <div class="modal" id="modal-help" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+    <div class="modal__head">
+      <h2 id="help-title">How to play CricToe</h2>
+      <button type="button" class="icon-btn" data-close-modal aria-label="Close">✕</button>
+    </div>
+    <div class="modal__body">
+      <ol class="howto">
+        <li>Every day gives you a fresh <strong>3×3 grid</strong>: three row categories across the top, three column categories down the side.</li>
+        <li>Tap a square and name a cricketer who matches <strong>both</strong> its row <em>and</em> its column. Every tile shows a picture plus what it means.</li>
+        <li>You start with <strong id="help-seconds">3:00</strong> on the clock. The timer starts the moment you tap your first square.</li>
+        <li>A correct answer locks the square and adds <strong>+10s</strong>. A wrong answer costs <strong>−15s</strong> and tells you which of the two categories you missed.</li>
+        <li>Fill all nine squares to win and extend your streak. If the clock runs out, every remaining square is revealed.</li>
+      </ol>
+
+      <h3 class="modal__subhead">What each category means</h3>
+      <ul class="howto howto--info">
+        <li><strong>Country, format and role</strong> — e.g. <em>India</em>, <em>Test cricket</em>, <em>All-rounder</em>.</li>
+        <li><strong>Leagues</strong> — the cricketer has played at least one match in that league.</li>
+        <li><strong>Trophies</strong> — they were part of a winning <em>squad</em>, not only the final XI.</li>
+        <li><strong>Stats</strong> — e.g. <em>400+ caps</em> means 400 or more international appearances.</li>
+        <li>
+          <strong>“Played with…”</strong> — a tile showing a cricketer's name and photo means the answer
+          must have appeared in the <strong>same XI</strong> as that player — for their country, or as a
+          franchise teammate in the IPL, PSL, BBL, CPL, The Hundred, ILT20 or SA20. Playing
+          <em>against</em> them does <strong>not</strong> count, and neither does being captained by them.
+        </li>
+      </ul>
+
+      <p class="modal__note">
+        Worked example: the square where <em>“Played ODI cricket”</em> meets <em>“India”</em> is anyone who
+        has played an ODI for India — <em>Virat Kohli</em> or <em>Rohit Sharma</em>, to name two.
+      </p>
+      <p class="modal__note">
+        Stuck? Hit <strong>Give up &amp; reveal</strong> for one valid answer per square, or switch on
+        <strong>Practice</strong> for an untimed board that leaves your streak alone.
+      </p>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--primary" data-close-modal>Let's play</button>
+    </div>
+  </div>
+
+  <!-- Result / share -->
+  <div class="modal" id="modal-result" role="dialog" aria-modal="true" aria-labelledby="result-title" hidden>
+    <div class="modal__head">
+      <h2 id="result-title">Puzzle complete</h2>
+      <button type="button" class="icon-btn" data-close-modal aria-label="Close">✕</button>
+    </div>
+    <div class="modal__body">
+      <p class="result__blurb" id="result-blurb"></p>
+      <pre class="result__grid" id="result-grid" aria-label="Your result"></pre>
+      <p class="result__meta" id="result-meta"></p>
+      <p class="result__reveal" id="result-reveal"></p>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn btn--primary" id="btn-copy-share">Copy result</button>
+      <button type="button" class="btn" data-close-modal>Close</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="modal" id="modal-stats" role="dialog" aria-modal="true" aria-labelledby="stats-title" hidden>
+    <div class="modal__head">
+      <h2 id="stats-title">Your stats</h2>
+      <button type="button" class="icon-btn" data-close-modal aria-label="Close">✕</button>
+    </div>
+    <div class="modal__body">
+      <div class="stats-grid" id="stats-grid"></div>
+      <h3 class="stats-sub">Correct guesses needed</h3>
+      <ul class="dist" id="stats-dist"></ul>
+      <p class="modal__note" id="stats-saved"></p>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn" id="btn-clear-stats">Clear saved data</button>
+      <button type="button" class="btn btn--primary" data-close-modal>Close</button>
+    </div>
+  </div>
+
+  <!-- Toast (transient feedback) -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <script src="script.js"></script>
+</body>
+</html>

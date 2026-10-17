@@ -1,0 +1,14 @@
+# ---------------------------------------------------------------------------
+# CricToe
+# ---------------------------------------------------------------------------
+
+# Data-pipeline downloads and derived cache (~1.7 GB).
+# Nothing here is needed to run or deploy the game — regenerate it with the
+# scripts in build/ (see README section 4).
+build/cache/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.log

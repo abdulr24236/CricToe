@@ -1,0 +1,1078 @@
+/* ==========================================================================
+   CricToe — style.css
+   A cricket-themed, mobile-first stylesheet.
+   Sections:
+     1.  Design tokens (CSS custom properties)
+     2.  Base / reset
+     3.  Layout shell & decorative background
+     4.  Buttons, links & small components
+     5.  Header (topbar)
+     6.  Puzzle header + HUD + progress
+     7.  Board (3x3 grid) and its cells
+     8.  Guess panel & autocomplete suggestions
+     9.  Modals (how-to-play, result, stats)
+    10.  Toast
+    11.  Animations
+    12.  Responsive tweaks
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. DESIGN TOKENS
+   -------------------------------------------------------------------------- */
+:root {
+  /* Core palette — a floodlit pitch at night */
+  --bg: #08150e;
+  --bg-2: #0c1f15;
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-solid: #10241a;
+  --panel-border: rgba(255, 255, 255, 0.09);
+
+  --ink: #f4f1e6;          /* willow-cream text  */
+  --ink-dim: #a8b8ad;      /* muted text         */
+  --ink-faint: #6f8478;
+
+  --pitch: #1f7a4d;        /* deep pitch green   */
+  --pitch-light: #2ea56a;
+  --lime: #a7e05f;         /* correct accent     */
+  --ball: #e2463c;         /* cricket-ball red   */
+  --gold: #e8c46a;         /* trophy gold        */
+
+  --correct-bg: linear-gradient(160deg, rgba(167, 224, 95, 0.22), rgba(31, 122, 77, 0.22));
+  --wrong-bg: linear-gradient(160deg, rgba(226, 70, 60, 0.22), rgba(120, 25, 25, 0.18));
+
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-sm: 9px;
+
+  --shadow-lift: 0 18px 40px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Roboto, Arial, sans-serif;
+  --mono: "SFMono-Regular", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+/* --------------------------------------------------------------------------
+   2. BASE / RESET
+   -------------------------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+/* The [hidden] attribute must always win — several components set
+   `display: flex`, which would otherwise override the UA rule. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, #123726 0%, transparent 60%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+  background-attachment: fixed;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; line-height: 1.15; }
+p { margin: 0; }
+button { font: inherit; }
+code { font-family: var(--mono); font-size: 0.92em; }
+
+/* Respect users who prefer less motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. LAYOUT SHELL
+   -------------------------------------------------------------------------- */
+.bg-glow {
+  position: fixed;
+  inset: -20% -10% auto -10%;
+  height: 60vh;
+  background:
+    radial-gradient(40% 60% at 25% 30%, rgba(46, 165, 106, 0.22), transparent 70%),
+    radial-gradient(35% 55% at 78% 20%, rgba(232, 196, 106, 0.12), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: min(100%, 940px);
+  margin: 0 auto;
+  padding: 18px clamp(12px, 3vw, 26px) 32px;
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* --------------------------------------------------------------------------
+   4. BUTTONS & SMALL COMPONENTS
+   -------------------------------------------------------------------------- */
+.btn {
+  --btn-bg: var(--panel);
+  --btn-fg: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  white-space: nowrap;
+}
+.btn:hover { transform: translateY(-1px); border-color: rgba(255, 255, 255, 0.2); }
+.btn:active { transform: translateY(0) scale(0.985); }
+.btn:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.btn[disabled] { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+.btn--primary {
+  background: linear-gradient(160deg, var(--pitch-light), var(--pitch));
+  border-color: rgba(167, 224, 95, 0.35);
+  color: #06210f;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(31, 122, 77, 0.35);
+}
+.btn--ghost { background: transparent; }
+.btn--practice[aria-pressed="true"] {
+  background: linear-gradient(160deg, rgba(232, 196, 106, 0.25), rgba(232, 196, 106, 0.12));
+  border-color: rgba(232, 196, 106, 0.5);
+  color: var(--gold);
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--panel-border);
+  background: transparent;
+  color: var(--ink-dim);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+.icon-btn:hover { color: var(--ink); background: var(--panel); }
+.icon-btn:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+
+.linklike {
+  background: none;
+  border: 0;
+  color: var(--lime);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   5. HEADER
+   -------------------------------------------------------------------------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 4px 0 16px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: var(--ink);
+}
+.brand__mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: linear-gradient(150deg, var(--pitch-light), var(--pitch));
+  box-shadow: var(--shadow-pop);
+  font-size: 1.25rem;
+}
+.brand__text { display: flex; flex-direction: column; line-height: 1.1; }
+.brand__text strong { font-size: 1.32rem; letter-spacing: 0.16em; }
+.brand__text small { color: var(--ink-faint); font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; }
+
+.topbar__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --------------------------------------------------------------------------
+   6. PUZZLE HEADER, HUD, PROGRESS
+   -------------------------------------------------------------------------- */
+.puzzle-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  backdrop-filter: blur(6px);
+}
+
+.puzzle-head__titles { display: flex; flex-direction: column; gap: 4px; }
+.puzzle-head h1 { font-size: clamp(1.35rem, 3.4vw, 1.8rem); letter-spacing: 0.01em; }
+.puzzle-head__date { color: var(--ink-dim); font-size: 0.9rem; }
+
+.hud {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.hud__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.hud__value { font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+.hud__value--small { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.hud__label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); }
+.hud__value.is-low { color: var(--ball); }
+
+.progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.progress__bar {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pitch-light), var(--lime));
+  transition: width 0.4s ease;
+}
+
+/* --------------------------------------------------------------------------
+   7. BOARD
+   -------------------------------------------------------------------------- */
+.board-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.board-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+
+.board {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.92fr) repeat(3, 1fr);
+  grid-auto-rows: minmax(74px, auto);
+  gap: 8px;
+  min-width: 480px;
+}
+
+/* Axis labels */
+.axis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+.axis--col {
+  background: linear-gradient(180deg, rgba(31, 122, 77, 0.4), rgba(31, 122, 77, 0.16));
+  border: 1px solid rgba(167, 224, 95, 0.22);
+}
+.axis--row {
+  background: linear-gradient(90deg, rgba(232, 196, 106, 0.22), rgba(232, 196, 106, 0.06));
+  border: 1px solid rgba(232, 196, 106, 0.2);
+}
+.axis--corner {
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  color: var(--ink-faint);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Cells */
+.cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px;
+  min-height: 74px;
+  border-radius: var(--radius);
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.14s ease, border-color 0.2s ease, background 0.25s ease, box-shadow 0.2s ease;
+}
+.cell:hover { border-color: rgba(167, 224, 95, 0.5); background: rgba(167, 224, 95, 0.06); transform: translateY(-1px); }
+.cell:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.cell__plus { font-size: 1.3rem; color: var(--ink-faint); font-weight: 300; }
+.cell__ring {
+  position: absolute;
+  inset: 4px;
+  border: 2px solid var(--lime);
+  border-radius: calc(var(--radius) - 5px);
+  pointer-events: none;
+}
+
+.cell__name { font-size: 0.9rem; font-weight: 700; line-height: 1.2; }
+.cell__tag { font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint); }
+
+.cell--correct {
+  border: 1px solid rgba(167, 224, 95, 0.55);
+  background: var(--correct-bg);
+  box-shadow: inset 0 0 0 1px rgba(167, 224, 95, 0.15);
+}
+.cell--correct .cell__tag { color: var(--lime); }
+.cell--revealed {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+.cell--revealed .cell__name { color: var(--ink-dim); font-weight: 600; }
+.cell--revealed .cell__tag { color: var(--gold); }
+.cell--active { border-style: solid; border-color: var(--lime); box-shadow: 0 0 0 3px rgba(167, 224, 95, 0.18); }
+.cell--wrong { animation: shake 0.42s ease; border-color: var(--ball); background: var(--wrong-bg); }
+.cell--solved { cursor: default; }
+.cell--solved:hover { transform: none; }
+
+.board-note {
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+  text-align: center;
+}
+.board-note em { color: var(--ink-dim); font-style: normal; text-decoration: underline dotted; }
+
+/* --------------------------------------------------------------------------
+   8. GUESS PANEL + SUGGESTIONS
+   -------------------------------------------------------------------------- */
+.guess-panel {
+  position: fixed;
+  z-index: 60;
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-lift);
+  animation: fadeIn 0.16s ease;
+}
+/* Bottom-sheet layout on small screens / when JS cannot anchor it */
+.guess-panel--sheet {
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  animation: sheetUp 0.22s ease;
+}
+
+.guess-panel__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.guess-panel__cats {
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ink-dim);
+}
+.guess-panel__cats b { color: var(--lime); font-weight: 700; }
+.guess-panel__cats i { color: var(--gold); font-style: normal; font-weight: 700; }
+
+.guess-form__field { display: flex; gap: 8px; }
+.guess-input {
+  flex: 1;
+  min-width: 0;
+  padding: 11px 13px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--ink);
+  font-size: 0.95rem;
+}
+.guess-input::placeholder { color: var(--ink-faint); }
+.guess-input:focus { outline: none; border-color: var(--lime); box-shadow: 0 0 0 3px rgba(167, 224, 95, 0.15); }
+.btn--submit { padding: 11px 15px; border-radius: var(--radius-sm); }
+
+.suggestions {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 5px;
+  max-height: 232px;
+  overflow-y: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-border);
+  background: rgba(0, 0, 0, 0.32);
+}
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.suggestion:hover,
+.suggestion.is-active { background: rgba(167, 224, 95, 0.14); }
+.suggestion__name { font-weight: 600; }
+.suggestion__country { font-size: 0.72rem; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+.suggestion--empty { color: var(--ink-faint); cursor: default; font-size: 0.85rem; }
+.suggestion--empty:hover { background: transparent; }
+
+.guess-panel__hint {
+  margin-top: 9px;
+  min-height: 1.05em;
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+}
+.guess-panel__hint.is-error { color: var(--ball); }
+
+/* --------------------------------------------------------------------------
+   9. MODALS
+   -------------------------------------------------------------------------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(3, 10, 6, 0.68);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.18s ease;
+}
+
+.modal {
+  position: fixed;
+  z-index: 80;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(480px, calc(100vw - 32px));
+  max-height: min(86vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--panel-border);
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-lift);
+  animation: popIn 0.2s ease;
+}
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--panel-border);
+}
+.modal__head h2 { font-size: 1.1rem; }
+.modal__body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.modal__foot {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-top: 1px solid var(--panel-border);
+}
+.modal__note { color: var(--ink-dim); font-size: 0.86rem; }
+.modal__note strong { color: var(--ink); }
+
+.howto { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; }
+.howto li { font-size: 0.9rem; color: var(--ink-dim); }
+.howto strong { color: var(--ink); }
+
+.result__blurb { font-size: 0.98rem; font-weight: 600; }
+.result__grid {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  line-height: 1.25;
+  letter-spacing: 0.12em;
+  margin: 0;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  text-align: center;
+  white-space: pre-wrap;
+}
+.result__meta { font-size: 0.82rem; color: var(--ink-faint); }
+.result__reveal { font-size: 0.82rem; color: var(--gold); }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.stats-grid .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.26);
+  text-align: center;
+}
+.stats-grid .stat b { font-size: 1.2rem; }
+.stats-grid .stat span { font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-faint); }
+.stats-sub { font-size: 0.86rem; color: var(--ink-dim); font-weight: 600; }
+.dist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dist li { display: flex; align-items: center; gap: 9px; font-size: 0.82rem; }
+.dist .dist__row { width: 3.6em; color: var(--ink-faint); }
+.dist .dist__bar { flex: 1; height: 16px; border-radius: 6px; background: rgba(0, 0, 0, 0.3); overflow: hidden; }
+.dist .dist__fill { height: 100%; background: linear-gradient(90deg, var(--pitch), var(--lime)); border-radius: 6px; min-width: 2px; }
+.dist .dist__count { width: 2em; text-align: right; color: var(--ink-dim); }
+
+/* --------------------------------------------------------------------------
+   10. TOAST
+   -------------------------------------------------------------------------- */
+.toast {
+  position: fixed;
+  z-index: 90;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  padding: 11px 18px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-solid);
+  color: var(--ink);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lift);
+  animation: toastIn 0.2s ease;
+  max-width: min(92vw, 460px);
+  text-align: center;
+}
+.toast--good { border-color: rgba(167, 224, 95, 0.55); }
+.toast--bad { border-color: rgba(226, 70, 60, 0.55); }
+.toast--info { border-color: rgba(232, 196, 106, 0.5); }
+
+/* --------------------------------------------------------------------------
+   11. CONTROLS / FOOTER / ANIMATIONS
+   -------------------------------------------------------------------------- */
+.controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+.archive-note {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--gold);
+}
+
+.footer {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 0.8rem;
+}
+.footer__tiny { font-size: 0.74rem; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.96); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes sheetUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+@keyframes correctPop {
+  0% { transform: scale(0.94); }
+  55% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+.cell--pop { animation: correctPop 0.35s ease; }
+
+/* --------------------------------------------------------------------------
+   12. RESPONSIVE
+   -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+  .hud { grid-template-columns: repeat(2, 1fr); }
+  .board { grid-template-columns: minmax(72px, 0.85fr) repeat(3, 1fr); gap: 6px; min-width: 420px; }
+  .axis { font-size: 0.68rem; padding: 6px; }
+  .cell { min-height: 64px; padding: 6px; }
+  .cell__name { font-size: 0.8rem; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .topbar { justify-content: center; }
+  .topbar__actions { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 420px) {
+  .board { min-width: 300px; }
+  .cell { min-height: 58px; }
+  .cell__name { font-size: 0.72rem; }
+  .axis { font-size: 0.62rem; }
+  .btn { padding: 9px 13px; font-size: 0.86rem; }
+}
+
+/* On very small screens the guess panel becomes a full-width sheet */
+@media (max-width: 620px) {
+  .guess-panel { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; top: auto !important; animation: sheetUp 0.22s ease; }
+}
+
+/* ==========================================================================
+   VISUAL UPGRADE — icons, player photos and the shot clock
+   Added with the large dataset: category tiles now carry a flag / league
+   badge / cricket glyph, solved squares show the player's photo, and the
+   guess counter has been replaced by a countdown timer.
+   ========================================================================== */
+
+/* ---- Axis tiles (row + column headers) ---------------------------------- */
+.axis--row,
+.axis--col {
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 8px;
+}
+.axis__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+}
+.axis__flag {
+  width: 30px;
+  height: 22px;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.08);
+}
+.axis__label { display: block; }
+
+/* Cricket glyphs — small inline SVGs drawn in the tile accent colour. */
+.axis__glyph { width: 24px; height: 24px; color: var(--lime); opacity: 0.95; }
+.axis--row .axis__glyph { color: var(--gold); }
+
+/* League / competition badges drawn entirely in CSS (no trademarked logos). */
+.axis__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #06120c;
+  background: var(--lime);
+}
+.axis__badge--blue { background: #5aa9e6; }
+.axis__badge--green { background: #7ed957; }
+.axis__badge--cyan { background: #56e0d0; }
+.axis__badge--purple { background: #b18cf0; }
+.axis__badge--pink { background: #f07ac0; }
+.axis__badge--orange { background: #f0a35a; }
+.axis__badge--teal { background: #4fd6a0; }
+.axis__badge--maroon { background: #c98a6a; }
+
+/* Round photo tile used by the "played alongside <player>" category. */
+.axis__photo {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(167, 224, 95, 0.6);
+  background: rgba(0, 0, 0, 0.3);
+}
+.axis__photo--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ---- Solved cells with photos ------------------------------------------ */
+.cell__photo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(167, 224, 95, 0.55);
+  background: rgba(0, 0, 0, 0.3);
+}
+.cell__photo--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--lime);
+}
+.cell__hint {
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: var(--ball);
+}
+
+/* ---- Autocomplete rows with thumbnails --------------------------------- */
+.suggestion { gap: 10px; }
+.suggestion__photo {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: rgba(0, 0, 0, 0.3);
+}
+.suggestion__photo--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--ink-dim);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.suggestion__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.suggestion__meta {
+  font-size: 0.62rem;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ---- Shot clock -------------------------------------------------------- */
+.hud__item--timer .hud__value { font-variant-numeric: tabular-nums; }
+.hud__item--timer.is-low .hud__value { color: var(--gold); }
+.hud__item--timer.is-critical .hud__value { color: var(--ball); }
+.hud__item--timer.is-critical { animation: timerPulse 1s ease-in-out infinite; }
+.hud__item--timer.is-paused .hud__value { opacity: 0.55; }
+@keyframes timerPulse {
+  0%, 100% { border-color: rgba(255, 255, 255, 0.05); }
+  50% { border-color: var(--ball); }
+}
+.hud__item--timer.is-penalty { animation: shake 0.42s ease; }
+.hud__item--timer.is-bonus .hud__value { animation: correctPop 0.45s ease; }
+
+/* ---- Guessing feedback on a cell --------------------------------------- */
+.cell--partial {
+  border-color: rgba(232, 196, 106, 0.6);
+  background: rgba(232, 196, 106, 0.1);
+}
+
+/* ---- Footer credit links ----------------------------------------------- */
+.footer__tiny a.linklike { text-decoration: underline; }
+
+/* ---- Guess-panel category chips (icon + short label) ------------------- */
+.guess-panel__cats { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.chip__glyph { width: 15px; height: 15px; color: var(--lime); flex: 0 0 15px; }
+.guess-plus { color: var(--ink-faint); font-weight: 700; }
+
+/* Suggestion rows: photo + text sit together, text fills the row. */
+.suggestion { justify-content: flex-start; }
+.suggestion__text { flex: 1; min-width: 0; }
+.suggestion__name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ==========================================================================
+   VISUAL LANGUAGE v2 — image-forward tiles
+   Reference: playfootball.games' grid games. Every tile leads with artwork
+   (flag / badge / photo), with a short condensed uppercase label beneath it,
+   and solved squares show the player's photo. Type is Bebas Neue, the same
+   condensed display face the reference uses.
+   All colours remain :root tokens, so the whole theme is one edit.
+   ========================================================================== */
+
+:root {
+  --font-display: "Bebas Neue", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  --card: rgba(255, 255, 255, 0.05);
+  --card-line: rgba(255, 255, 255, 0.1);
+
+  /* Tile surfaces — tokenised so the whole theme can be swapped in one place. */
+  --axis-col-bg: linear-gradient(180deg, rgba(31, 122, 77, 0.55), rgba(16, 48, 32, 0.4));
+  --axis-col-line: rgba(167, 224, 95, 0.26);
+  --axis-row-bg: linear-gradient(90deg, rgba(232, 196, 106, 0.3), rgba(232, 196, 106, 0.09));
+  --axis-row-line: rgba(232, 196, 106, 0.26);
+}
+
+/* ---- Display typography ------------------------------------------------- */
+.brand,
+.puzzle-head,
+.hud__value,
+.btn,
+.axis__label,
+.axis__prefix,
+.axis__badge,
+.chip,
+.cell__name,
+.modal__head h2,
+.modal__subhead,
+.stats-sub {
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+}
+.puzzle-head h1,
+.puzzle-head__titles h1,
+.brand__text,
+.btn,
+.chip,
+.cell__tag { text-transform: uppercase; }
+.puzzle-head h1,
+.puzzle-head__titles h1,
+.brand__text { line-height: 1; }
+
+/* ---- Board geometry: taller, card-like tiles ---------------------------- */
+.board {
+  grid-template-columns: minmax(104px, 0.8fr) repeat(3, 1fr);
+  grid-auto-rows: minmax(112px, auto);
+  gap: 9px;
+  min-width: 520px;
+}
+
+/* ---- Category tiles ----------------------------------------------------- */
+.axis--row,
+.axis--col {
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  min-height: 112px;
+  padding: 10px 8px;
+  border-radius: 12px;
+}
+.axis--col {
+  background: var(--axis-col-bg);
+  border: 1px solid var(--axis-col-line);
+}
+.axis--row {
+  background: var(--axis-row-bg);
+  border: 1px solid var(--axis-row-line);
+}
+.axis--corner {
+  min-height: 112px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+}
+.axis--corner__mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.axis__text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.axis__label {
+  font-size: 1.04rem;
+  line-height: 1.02;
+  text-transform: uppercase;
+  color: #fff;
+}
+.axis__prefix {
+  font-size: 0.66rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Bigger artwork, like the reference's crest/flag tiles */
+.axis .axis__icon { min-height: 0; }
+.axis .axis__flag { width: 54px; height: 38px; border-radius: 5px; }
+.axis__photo { width: 58px; height: 58px; border-width: 2.5px; }
+.axis__glyph { width: 34px; height: 34px; }
+.axis__badge { font-size: 0.92rem; padding: 4px 13px; letter-spacing: 0.08em; }
+/* Badge-only tiles (BBL, IPL …) drop the caption and scale the badge up. */
+.axis--icon-only .axis__badge { font-size: 1.28rem; padding: 7px 17px; }
+
+/* ---- Squares: photo-led answers ---------------------------------------- */
+.cell {
+  min-height: 112px;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 12px;
+  background: var(--card);
+}
+.cell__plus { font-size: 1.6rem; }
+.cell__photo { width: 52px; height: 52px; }
+.cell__photo--fallback { font-size: 1rem; }
+.cell__name { font-size: 1.04rem; line-height: 1; text-transform: uppercase; }
+.cell__tag { font-size: 0.6rem; letter-spacing: 0.1em; }
+
+/* ---- Guess panel: plain-English explanation per side ------------------- */
+.guess-panel__note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.guess-panel__note:empty { display: none; }
+.crit-note { font-size: 0.76rem; line-height: 1.45; color: var(--ink-dim); }
+.crit-note b {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-right: 4px;
+}
+.crit-note:first-child b { color: var(--gold); }
+.crit-note:last-child b { color: var(--lime); }
+
+/* ---- Help modal: the category dictionary ------------------------------- */
+.modal__subhead {
+  margin: 16px 0 6px;
+  font-size: 1.06rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--lime);
+}
+.howto--info { list-style: none; padding-left: 0; margin: 0; }
+.howto--info li { position: relative; padding-left: 18px; }
+.howto--info li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--lime);
+}
+
+/* Scroll affordance: fade the bottom edge so a cut-off line reads as
+   "more below" rather than as broken layout. */
+.modal__body {
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0) calc(100% - 28px), var(--panel-solid) 100%)
+      bottom / 100% 28px no-repeat scroll;
+}
+
+/* ---- Small screens: keep the whole grid on screen (no side-scrolling) --- */
+@media (max-width: 620px) {
+  .board {
+    grid-template-columns: minmax(76px, 0.82fr) repeat(3, 1fr);
+    grid-auto-rows: minmax(86px, auto);
+    gap: 7px;
+    min-width: 318px;
+  }
+  .axis--row, .axis--col, .axis--corner { min-height: 86px; gap: 5px; padding: 7px 5px; }
+  .axis--corner__mark { width: 38px; height: 38px; font-size: 1rem; }
+  .axis .axis__flag { width: 36px; height: 25px; }
+  .axis__photo { width: 40px; height: 40px; }
+  .axis__glyph { width: 24px; height: 24px; }
+  .axis__badge { font-size: 0.7rem; padding: 3px 9px; }
+  .axis--icon-only .axis__badge { font-size: 0.95rem; padding: 5px 11px; }
+  .axis__label { font-size: 0.8rem; }
+  .axis__prefix { font-size: 0.54rem; letter-spacing: 0.1em; }
+  .cell { min-height: 86px; padding: 5px 4px; }
+  .cell__photo { width: 36px; height: 36px; }
+  .cell__name { font-size: 0.8rem; }
+  .cell__plus { font-size: 1.3rem; }
+}
+
+/* ==========================================================================
+   ALTERNATE PALETTE — the reference site's aubergine + lime.
+   Preview with ?theme=purple. Every rule above reads these tokens, so this
+   block is the only thing that changes; delete it to remove the option.
+   ========================================================================== */
+:root[data-theme="purple"] {
+  --bg: #1e0d30;
+  --bg-2: #2a1543;
+  --panel: rgba(255, 255, 255, 0.055);
+  --panel-solid: #2c1a41;
+  --panel-border: rgba(255, 255, 255, 0.1);
+
+  --ink: #f7f3ff;
+  --ink-dim: #bfaad9;
+  --ink-faint: #8d78a9;
+
+  --pitch: #7a4fd0;
+  --pitch-light: #a678f5;
+  --lime: #ceff27;
+  --ball: #ff5c8a;
+  --gold: #ffc94d;
+
+  --correct-bg: linear-gradient(160deg, rgba(206, 255, 39, 0.2), rgba(122, 79, 208, 0.26));
+  --wrong-bg: linear-gradient(160deg, rgba(255, 92, 138, 0.22), rgba(120, 25, 60, 0.2));
+
+  --card: rgba(255, 255, 255, 0.06);
+  --card-line: rgba(255, 255, 255, 0.12);
+
+  --axis-col-bg: linear-gradient(180deg, rgba(122, 79, 208, 0.55), rgba(46, 22, 74, 0.45));
+  --axis-col-line: rgba(206, 255, 39, 0.24);
+  --axis-row-bg: linear-gradient(90deg, rgba(255, 201, 77, 0.3), rgba(255, 201, 77, 0.08));
+  --axis-row-line: rgba(255, 201, 77, 0.26);
+}
